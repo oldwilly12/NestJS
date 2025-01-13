@@ -5,6 +5,8 @@
 /mongo
 /build
 
+.env
+
 # Logs
 logs
 *.log
