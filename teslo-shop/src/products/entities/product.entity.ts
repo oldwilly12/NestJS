@@ -1,4 +1,5 @@
-import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { ProductImage } from "./product-image.entity";
 
 @Entity()
 export class Product {
@@ -46,6 +47,13 @@ export class Product {
     }
     )
     tags: string[];
+
+    @OneToMany(
+        () => ProductImage, //va a regresar un productImage
+        (productImage) => productImage.product, // A que quiero que se reliacione
+        {cascade: true} // ayuda a que si hacemos un insert en product se haga en productImage
+    )
+    images?: ProductImage[];
 
     @BeforeInsert()
     checkSlugInsert() {

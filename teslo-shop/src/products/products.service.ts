@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Product } from './entities/product.entity';
-import { Repository } from 'typeorm';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+
 import { validate as isUUID } from 'uuid';
+import { ProductImage, Product } from './entities';
 
 @Injectable()
 export class ProductsService {
@@ -17,6 +19,9 @@ export class ProductsService {
     @InjectRepository(Product) //injectar la entidad 
     private readonly productRepository: Repository<Product>,
 
+    @InjectRepository(ProductImage) //injectar la entidad 
+    private readonly productImageRepository: Repository<ProductImage>,
+
 
   ) {}
   
@@ -24,11 +29,15 @@ export class ProductsService {
   async create(createProductDto: CreateProductDto) {
     
     try {
+      const { images = [], ...productDetails} = createProductDto; //...productDetails guarda el resto ahi y que no son imagenes
 
-      const product = this.productRepository.create(createProductDto); // solo lo crea, crea la instancia del producto con sus propiedades
+      const product = this.productRepository.create({
+        ...productDetails,
+        images: images.map( image => this.productImageRepository.create({ url: image})), // cap 146
+      }); // solo lo crea, crea la instancia del producto con sus propiedades
       await this.productRepository.save(product); //guarda el producto en la base de datos
 
-      return product;
+      return {...product, images: images};
 
     } catch (error) {
       this.handleDBException(error);
@@ -37,15 +46,25 @@ export class ProductsService {
 
   }
 
-  findAll( paginationDto: PaginationDto ) {
+  async findAll( paginationDto: PaginationDto ) {
     const { limit = 10, offset = 0} = paginationDto
 
-    const things = this.productRepository.find({
+    const products = await this.productRepository.find({
       take: limit,
       skip: offset,
       // TODO: Relaciones
+      relations: { // relaciones que se quieren traer
+        images: true,
+      }
     });
-    return things;
+    // return products.map( product => ({
+    //   ...product,
+    //   images: product.images.map( img => img.url)
+    // }));
+    return products.map( ({ images, ...rest }) => ({
+      ...rest,
+      images: images.map( img => img.url)
+    }));
   }
 
   async findOne(term: string) {
@@ -73,8 +92,8 @@ export class ProductsService {
 
     const product = await this.productRepository.preload({
       id: id, // busca un producto con ese id
-      ...updateProductDto // adicionalmente carga todas las propiedades del updateProductDto
-      // no actualiza solo prepara para actualizacion 
+      ...updateProductDto, // adicionalmente carga todas las propiedades del updateProductDto
+      images: [],// no actualiza solo prepara para actualizacion 
     });
 
     if ( !product ) throw new NotFoundException(`Product #${id} not found`);
