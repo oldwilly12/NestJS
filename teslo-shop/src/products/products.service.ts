@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -22,6 +22,8 @@ export class ProductsService {
     @InjectRepository(ProductImage) //injectar la entidad 
     private readonly productImageRepository: Repository<ProductImage>,
 
+    
+    private readonly dataSource: DataSource, // sabe la cadena de datos que usamos 
 
   ) {}
   
@@ -73,12 +75,14 @@ export class ProductsService {
       product = await this.productRepository.findOneBy({id: term});
     } else {
       // product = await this.productRepository.findOneBy({slug: term});
-      const queryBuilder = this.productRepository.createQueryBuilder();
+      const queryBuilder = this.productRepository.createQueryBuilder('prod'); //'prod' es el alias de tabla principal productos
       product = await queryBuilder
         .where(`UPPER(title) = :title or slug =:slug`, {
           title: term.toUpperCase(),
           slug: term.toLowerCase(),
-        }).getOne();
+        })
+        .leftJoinAndSelect('prod.images','prodImages') // prod.images es la relacion que se quiere traer
+        .getOne();
         //select * from product where slug = term or title = term
     }
     // const product = await this.productRepository.findOneBy({id});
@@ -87,22 +91,51 @@ export class ProductsService {
     }
     return product;
   }
+  
+  async findOnePlain( term: string ) { // aplanar
+    const {images = [], ...rest} = await this.findOne(term);
+    return {
+      ...rest,
+      images: images.map( image => image.url)
+    }
+  }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
+    // toUpdate es un objeto que contiene todas las propiedades del updateProductDto excepto images y se actualiza
+    const { images, ...toUpdate } = updateProductDto; 
 
-    const product = await this.productRepository.preload({
-      id: id, // busca un producto con ese id
-      ...updateProductDto, // adicionalmente carga todas las propiedades del updateProductDto
-      images: [],// no actualiza solo prepara para actualizacion 
-    });
-
+    //haz un preload de un objeto qu elusca asi el id y actualiza los datos que hay en el preload
+    const product = await this.productRepository.preload({ id, ...toUpdate });        
+    
     if ( !product ) throw new NotFoundException(`Product #${id} not found`);
 
+    // Create query runner
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect(); // conecta a la base de datos
+    await queryRunner.startTransaction(); // inicia la transaccion
+
     try {
-      await this.productRepository.save(product);
-      return product; // guarda el producto en la base de datos
+
+      if ( images ) {
+        await queryRunner.manager.delete(ProductImage, { product: { id }}); // elimina las imagenes que estan asociadas al producto
+        product.images = images.map( 
+          image => this.productImageRepository.create({ url: image })//crar instanicas de mi imagen sin impactar en la base de datos       
+      ) 
+      } else {
+        // product.images ???
+      }
+
+      await queryRunner.manager.save(product)
+
+      // dar commit a la transaccion decir que ya lo haga 
+      await queryRunner.commitTransaction();
+      await queryRunner.release(); // con esto paramos el queryRunner 
+
+      //await this.productRepository.save(product); // intenta guardarlo 
+      return this.findOnePlain( id ); // guarda el producto en la base de datos
       
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.handleDBException(error);
     }
 
@@ -122,6 +155,22 @@ export class ProductsService {
 
     this.logger.error(error)
     throw new InternalServerErrorException('Unexpected error, check server logs');
+  }
+
+  // trabajar seed y borrar todo
+  async deleteAllProducts() {
+    const query = this.productRepository.createQueryBuilder('product'); // alias product 
+
+    try {
+      return await query
+      .delete()
+      .where({})
+      .execute();
+
+
+    } catch (error) {
+      this.handleDBException(error);
+    }
   }
 
 }

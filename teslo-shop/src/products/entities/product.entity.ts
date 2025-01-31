@@ -51,7 +51,7 @@ export class Product {
     @OneToMany(
         () => ProductImage, //va a regresar un productImage
         (productImage) => productImage.product, // A que quiero que se reliacione
-        {cascade: true} // ayuda a que si hacemos un insert en product se haga en productImage
+        { cascade: true, eager: true } // ayuda a que si hacemos un insert en product se haga en productImage
     )
     images?: ProductImage[];
 
