@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Product } from "./product.entity";
 
 
-@Entity()
+@Entity({ name: 'product_images' }) //nombre de la tabla
 export class ProductImage {
 
     @PrimaryGeneratedColumn() //autoincrementando solo sin el 'uuid'
