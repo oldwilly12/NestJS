@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, UploadedFile, UseInterceptors, BadRequestException, Res} from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -10,6 +10,19 @@ import { fileFilter, fileNamer } from './helpers';
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+
+  @Get('product/:imageName')
+  findProductImage(
+    @Res() Res: Express.Response, //this is the response object of express
+    @Param('imageName') imageName: string
+  ) {
+
+    const path = this.filesService.getStaticProductImage( imageName );
+
+    return path;
+  }
+
 
   @Post('product') // i want to upload a file for a product, this is add in the URL
   @UseInterceptors( FileInterceptor('file',{
@@ -28,10 +41,9 @@ export class FilesController {
         throw new BadRequestException('Make Shure that the file is an image')
       }; 
 
-      console.log(file);
-
+      const secureUrl = `${ file.filename }`;
     return {
-      fileName: file.originalname
+      secureUrl
     };
   }
 
