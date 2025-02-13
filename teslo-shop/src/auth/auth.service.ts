@@ -6,6 +6,8 @@ import * as bcrypt from 'bcrypt';
 
 import { User } from './entities/user.entity';
 import { LoginUserDto, CreateUserDto } from './dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { JwtService } from '@nestjs/jwt';
 
 
 @Injectable()
@@ -13,7 +15,9 @@ export class AuthService {
 
   constructor(
     @InjectRepository(User)
-    private readonly  userRepository : Repository<User>
+    private readonly  userRepository : Repository<User>,
+
+    private readonly jwtService: JwtService, // servicio proporcionado nestJwt y por jwtModule este servicio da fecha de expiracion y cuando firmar
   ) {}
 async create(createUserDto: CreateUserDto) {
     
@@ -29,7 +33,10 @@ async create(createUserDto: CreateUserDto) {
       await this.userRepository.save( user ); // guarda en la base de datos
       delete user.password; // no devolver la contraseña
 
-      return user;
+      return {
+        ...user,
+        token: this.getJwtToken({id: user.id})
+      };
 
     } catch (error) {
       console.log(error);
@@ -43,8 +50,8 @@ async create(createUserDto: CreateUserDto) {
     const { password, email } = loginUserDto;
 
     const user = await this.userRepository.findOne({ 
-      where: { email},
-      select: { email: true, password: true }
+      where: { email },
+      select: { email: true, password: true, id: true }
      });
 
      if( !user )
@@ -53,9 +60,19 @@ async create(createUserDto: CreateUserDto) {
     if ( !bcrypt.compareSync( password, user.password))
       throw new UnauthorizedException('Credentials are not valid (password)');
 
-    return user;
+    return {
+      ...user,
+      token: this.getJwtToken({id: user.id})
+    };
 
 
+
+  }
+
+  private getJwtToken( payload: JwtPayload) {
+
+    const token = this.jwtService.sign( payload );
+    return token;
 
   }
 
