@@ -1,5 +1,6 @@
-import { IsString } from "class-validator";
-import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Product } from '../../products/entities/product.entity';
 
 
 @Entity('users')
@@ -31,6 +32,14 @@ export class User {
         default: ['user']
     })
     roles: string[];
+
+
+    @OneToMany(
+        () => Product, // objeto de la otra entidad
+        ( product ) => product.user// instancia del producto y como se relaciona a la otra tabla
+    )
+    product: Product;
+
 
     @BeforeInsert()
     checkFieldsBeforeInsert() {

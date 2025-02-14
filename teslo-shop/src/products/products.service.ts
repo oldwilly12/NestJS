@@ -8,6 +8,7 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 import { validate as isUUID } from 'uuid';
 import { ProductImage, Product } from './entities';
+import { User } from 'src/auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -28,7 +29,7 @@ export class ProductsService {
   ) {}
   
   
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User) {
     
     try {
       const { images = [], ...productDetails} = createProductDto; //...productDetails guarda el resto ahi y que no son imagenes
@@ -36,6 +37,7 @@ export class ProductsService {
       const product = this.productRepository.create({
         ...productDetails,
         images: images.map( image => this.productImageRepository.create({ url: image})), // cap 146
+        user// == user: user // usuario que es el tipo usuario del parametro
       }); // solo lo crea, crea la instancia del producto con sus propiedades
       await this.productRepository.save(product); //guarda el producto en la base de datos
 
@@ -100,7 +102,7 @@ export class ProductsService {
     }
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: User) {
     // toUpdate es un objeto que contiene todas las propiedades del updateProductDto excepto images y se actualiza
     const { images, ...toUpdate } = updateProductDto; 
 
@@ -124,7 +126,8 @@ export class ProductsService {
       } else {
         // product.images ???
       }
-
+      // await this.productRepository.save( product );
+      product.user = user;
       await queryRunner.manager.save(product)
 
       // dar commit a la transaccion decir que ya lo haga 

@@ -1,5 +1,6 @@
-import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { ProductImage } from "./product-image.entity";
+import { User } from "../../auth/entities/user.entity";
 
 @Entity({ name: 'products' }) //nombre de la tabla
 export class Product {
@@ -54,6 +55,14 @@ export class Product {
         { cascade: true, eager: true } // ayuda a que si hacemos un insert en product se haga en productImage
     )
     images?: ProductImage[];
+
+    @ManyToOne(
+        () => User,// se va a relacionar con la entidad de user
+        ( user ) => user.product, // si tengo un usuario como sabe como relacionarse a la otra tabla
+        { eager: true } // cada que se haga consulta para los productos carge la relacion con usuario
+    )
+    user: User;
+
 
     @BeforeInsert()
     checkSlugInsert() {
