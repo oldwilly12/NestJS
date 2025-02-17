@@ -9,10 +9,11 @@ import { IncomingHttpHeaders } from 'http';
 import { UserRoleGuard } from './guards/user-role/user-role.guard';
 import { RoleProtected } from './decorators/role-protected/role-protected.decorator';
 import { ValidRoles } from './interfaces';
+import { ApiTags } from '@nestjs/swagger';
 
 
 
-
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -25,7 +26,15 @@ export class AuthController {
   @Post('login')
   loginUser(@Body() loginUserDto: LoginUserDto){
     return this.authService.login( loginUserDto );
-  }0
+  }
+
+  @Get('check-status')
+  @Auth()
+  checkAuthStatus(
+    @GetUser() user: User
+  ){
+    return this.authService.checkAuthStatus( user );
+  }
 
   @Get('private')
   @UseGuards( AuthGuard() ) // AuthGuard activa la estrategia de passport

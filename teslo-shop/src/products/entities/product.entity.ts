@@ -1,47 +1,87 @@
 import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { ProductImage } from "./product-image.entity";
 import { User } from "../../auth/entities/user.entity";
+import { ApiProperty } from "@nestjs/swagger";
 
 @Entity({ name: 'products' }) //nombre de la tabla
 export class Product {
 
+    @ApiProperty({
+        example:  '14dd5178-5fba-4852-bf61-2985b9a3e751',
+        description: 'Prdocut ID',
+        uniqueItems: true
+    })
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    @ApiProperty({
+        example:  'T-shirt Teslo',
+        description: 'Product title',
+        uniqueItems: true
+    })
     @Column('text',{
         unique: true,
     })
     title: string;
 
+    @ApiProperty({
+        example:  0,
+        description: 'Prdocut Price',
+    })
     @Column('float', {
         default: 0
     })
     price: number;
 
+    @ApiProperty({
+        example:  'Mucho texto para la descripcion',
+        description: 'Prdocut Description',
+        default: null 
+    })
     @Column({
         type: 'text',
         nullable: true //acepte valores nulos
     })
     description: string;
 
+    @ApiProperty({
+        example:  't_shirt_teslo',
+        description: 'Prdocut SLUG - for SEO',
+        uniqueItems: true
+    })
     @Column('text',{
         unique: true,
     })
     slug: string;
 
+    @ApiProperty({
+        example:  10,
+        description: 'Prdocut Stock',
+        default: 0
+    })
     @Column('int', {
         default: 0
     })
     stock: number;
 
+    @ApiProperty({
+        example:  ['M', 'XL', 'XXL'],
+        description: 'Prdocut Sizes',
+    })
     @Column('text', {
         array:true,  //para que sea un array
     })
     sizes: string[];
 
+    @ApiProperty({
+        example:  'men',
+        description: 'Prdocut gender',
+        uniqueItems: true
+    })
     @Column('text')
     gender: string;
 
+    @ApiProperty()
     @Column('text',{
         array: true,
         default: []
@@ -49,6 +89,7 @@ export class Product {
     )
     tags: string[];
 
+    @ApiProperty()
     @OneToMany(
         () => ProductImage, //va a regresar un productImage
         (productImage) => productImage.product, // A que quiero que se reliacione

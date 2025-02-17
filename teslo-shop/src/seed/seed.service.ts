@@ -6,6 +6,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/auth/entities/user.entity';
 import { Repository } from 'typeorm';
 
+import * as bcrypt from 'bcrypt';
+
+
 
 @Injectable()
 export class SeedService {
@@ -19,8 +22,9 @@ export class SeedService {
   
   async runSeed() {
     await this.deleteTables();
+    const adminUser = await this.insertUsers(); // el usuario que retorna sera el creador de los productos
 
-    await this.insertNewProducts();
+    await this.insertNewProducts( adminUser );
     return 'seed executed';
   }
 
@@ -40,28 +44,31 @@ export class SeedService {
 
     const seedUsers = initialData.users;
 
+    
+
     const users: User[] = [];
 
     seedUsers.forEach( user => {
-      users.push(this.userRepository.create( user)) // preapara 
+      users.push(this.userRepository.create( user )) // preapara 
     });
 
-    await this.userRepository.save( seedUsers );
+    const dbUsers = await this.userRepository.save( seedUsers );
 
+    return dbUsers[0];
 
   }
 
 
-  private async insertNewProducts() {
+  private async insertNewProducts( user: User ) {
     await this.productService.deleteAllProducts();
 
     const products = initialData.products;
 
     const insertPromises = [];
 
-    // products.forEach( product => {
-    //   insertPromises.push( this.productService.create( product ) );
-    // });
+    products.forEach( product => {
+      insertPromises.push( this.productService.create( product, user ) );
+    });
 
     await Promise.all( insertPromises ); // Wait for all promises to resolve for all products to be inserted
 

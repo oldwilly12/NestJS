@@ -27,7 +27,7 @@ async create(createUserDto: CreateUserDto) {
       
       const user = this.userRepository.create( {
         ...userData,
-        password: bcrypt.hashSync( password, 10)
+        password: bcrypt.hashSync( password, 10)  // encriptar contraseña
       } ); // preparar para actualizar
 
       await this.userRepository.save( user ); // guarda en la base de datos
@@ -65,8 +65,17 @@ async create(createUserDto: CreateUserDto) {
       token: this.getJwtToken({id: user.id})
     };
 
+    
 
+  }
 
+  async checkAuthStatus( user: User ) {
+     // ya viene validado trae la informacion ya solo es crearle un nuevo jwt
+    return {
+      ...user,
+      token: this.getJwtToken({id: user.id})
+    }
+     
   }
 
   private getJwtToken( payload: JwtPayload) {
