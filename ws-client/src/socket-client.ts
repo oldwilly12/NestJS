@@ -1,5 +1,7 @@
 import { Manager, Socket } from 'socket.io-client'
 
+let socket: Socket;
+
 export const connectToServer = ( token: string ) => {
     //http://localhost:3001/socket.io/socket.io.js
     // npm install socket.io-client
@@ -11,14 +13,15 @@ export const connectToServer = ( token: string ) => {
         }
     });
 
-    const socket = manager.socket('/');
+    socket?.removeAllListeners();
+    socket = manager.socket('/');
     // console.log({socket});
 
-    addListeners( socket );
+    addListeners(  );
     
 }
 
-const addListeners = ( socket: Socket ) => {
+const addListeners = (  ) => {
     const serverStatusLabel = document.querySelector('#serverStatus')!;
     const clientsUl = document.querySelector('#clients-ul')!;
 

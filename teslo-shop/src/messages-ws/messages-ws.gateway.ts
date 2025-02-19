@@ -3,6 +3,7 @@ import { MessagesWsService } from './messages-ws.service';
 import { Server, Socket } from 'socket.io';
 import { NewMessageDto } from './dto/new-message.dto';
 import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from 'src/auth/interfaces';
 
 @WebSocketGateway({ cors: true })
 export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconnect{
@@ -15,11 +16,22 @@ export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconne
   ) {}
   // http://localhost:3001/socket.io/socket.io.js   
   // para el tipo Socket se instala "yarn add socket.io"
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     const token = client.handshake.headers.authentication as string;
+    let payload: JwtPayload;
+
+    try {
+      payload = this.jwtService.verify( token );
+      await this.messagesWsService.registerClinet(client, payload.id);
+    } catch (error) {
+      client.disconnect();
+      return;
+    }
+
+    //console.log({payload});
     // console.log({token});
     //console.log('Client connected:', client.id);
-    this.messagesWsService.registerClinet(client);
+    
     
     // console.log({conectados: this.messagesWsService.getConnectedClients()});
     // estamos mandando el evento a todos los clientes conectados, el cliente debe estar pendiente de este evento "clients-update"
@@ -37,6 +49,7 @@ export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconne
   // se teiene acceso el cliente tipo socket y el peyload any
   @SubscribeMessage('message-from-client')
   handleMessageFromClient( client: Socket, payload: NewMessageDto ) {
+    
     console.log(client.id, payload);
 
     //! Emite unicamente al cliente
@@ -55,7 +68,7 @@ export class MessagesWsGateway implements OnGatewayConnection, OnGatewayDisconne
 
     //! emitir a todos y al cliente inical (yo)
     this.wss.emit('message-from-server', {
-      fullName: 'Soy yo',
+      fullName: this.messagesWsService.getUserFullName(client.id),
       message: payload.message || 'no-message'
     });
 
