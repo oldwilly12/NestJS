@@ -26,7 +26,7 @@ async function bootstrap() {
   // se creara en el endpoint 'api'
   SwaggerModule.setup('api', app, documentFactory);
 
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(process.env.PORT);
   logger.log(`App running on port ${ process.env.PORT }`);
 }
 bootstrap();

@@ -17,6 +17,14 @@ import { MessagesWsModule } from './messages-ws/messages-ws.module';
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
+      // para configuaraciones certificadas
+      ssl: process.env.STAGE === 'prod' ? true: false,
+      extra: {
+        ssl: process.env.STAGE === 'prod' 
+        ? { rejectUnauthorized: false }
+        : null,
+      },
+      // 
       type: 'postgres',
       host: process.env.DB_HOST, // 'localhost'
       port: +process.env.DB_PORT, 
